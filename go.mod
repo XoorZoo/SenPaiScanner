@@ -10,6 +10,7 @@ require (
 	github.com/wailsapp/wails/v2 v2.11.0
 	github.com/xtls/xray-core v1.260327.0
 	golang.org/x/time v0.15.0
+	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (

@@ -20,6 +20,12 @@ jobs:
           go-version: '1.25'
           cache: true
 
+      - name: Check Go version
+        run: go version
+
+      - name: Check go.mod version
+        run: head -5 go.mod
+
       - name: Download modules
         run: go mod download
 

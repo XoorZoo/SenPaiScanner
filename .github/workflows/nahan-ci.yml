@@ -1,4 +1,4 @@
-name: Nahan CI (Go 1.26.x)
+name: Nahan CI (Go 1.25)
 
 on:
   push:
@@ -9,15 +9,15 @@ on:
 
 jobs:
   nahan:
-    name: Nahan Mode Test & Build (Go 1.26.x)
+    name: Nahan Mode Test & Build (Go 1.25)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go
+      - name: Set up Go 1.25
         uses: actions/setup-go@v5
         with:
-          go-version-file: go.mod
+          go-version: '1.25'
           cache: true
 
       - name: Download modules

@@ -20,11 +20,17 @@ jobs:
           go-version: '1.25'
           cache: true
 
-      - name: Check Go version
-        run: go version
-
-      - name: Check go.mod version
-        run: head -5 go.mod
+      - name: Record environment
+        run: |
+          {
+            echo "## Environment"
+            echo "Go: $(go version)"
+            echo "go.mod head:"
+            head -5 go.mod
+            echo "grpc: $(go list -m google.golang.org/grpc 2>/dev/null || echo unknown)"
+            echo "xray-core: $(go list -m github.com/xtls/xray-core 2>/dev/null || echo unknown)"
+            echo "quic-go: $(go list -m github.com/apernet/quic-go 2>/dev/null || echo unknown)"
+          } | tee -a "$GITHUB_STEP_SUMMARY"
 
       - name: Download modules
         run: go mod download
@@ -39,6 +45,21 @@ jobs:
         run: |
           set -o pipefail
           go build -trimpath -o senpaiscanner-nahan ./cmd/nahan 2>&1 | tee nahan-build.log
+
+      - name: Surface build error
+        if: failure()
+        run: |
+          echo "## Nahan build error (tail)" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f nahan-build.log ]; then
+            tail -60 nahan-build.log | tee -a "$GITHUB_STEP_SUMMARY"
+            grep -E '\.go:[0-9]+' nahan-build.log | head -20 | while IFS= read -r line; do
+              esc=$(printf '%s' "$line" | sed -e 's/%/%25/g' -e 's/\r/%0D/g')
+              echo "::error::$esc"
+            done
+          else
+            echo "nahan-build.log not found (build step did not run)" | tee -a "$GITHUB_STEP_SUMMARY"
+          fi
+          exit 1
 
       - name: Upload build log
         if: always()

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -222,4 +223,32 @@ func uniq(in []string) []string {
 		}
 	}
 	return out
+}
+
+// LoadTargetsFromFile loads IPs and CIDRs from a file.
+// Returns (IPs, CIDRs, error).
+func LoadTargetsFromFile(path string) ([]net.IP, []string, error) {
+	ctx := context.Background()
+	text, err := os.ReadFile(path)
+	if err != nil {
+		return nil, nil, fmt.Errorf("read file: %w", err)
+	}
+	t := ParseTargets(ctx, string(text))
+	
+	var cidrs []string
+	lines := strings.Split(string(text), "\n")
+	for _, line := range lines {
+		line = strings.TrimSpace(line)
+		if line == "" || strings.HasPrefix(line, "#") {
+			continue
+		}
+		if strings.Contains(line, "/") {
+			_, _, err := net.ParseCIDR(line)
+			if err == nil {
+				cidrs = append(cidrs, line)
+			}
+		}
+	}
+	
+	return t.IPs, cidrs, nil
 }

@@ -21,6 +21,15 @@ type Result struct {
 	Throughput  float64 // bytes/sec, 0 if not measured
 	SpeedTested bool    // true when a payload download check was attempted
 	Timestamp   time.Time
+
+	// Nahan mode extensions (zero values when not in Nahan mode)
+	ASN             int     // Autonomous System Number
+	ISP             string  // ISP/Organization name
+	Country         string  // Country code (EG, NG, UNKNOWN)
+	CountryConfidence float64 // Confidence in country assignment (0.0-1.0)
+	TLSSuccess      bool    // TLS handshake succeeded
+	WSSuccess       bool    // WebSocket upgrade succeeded
+	HealthScore     float64 // Computed health score (0.0-1.0)
 }
 
 // Loss returns packet loss percentage (0–100).

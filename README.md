@@ -306,6 +306,144 @@ SenPai Scanner makes outbound network requests and may launch an embedded Xray p
 - **Android release will not update an installed build:** both APKs must be signed by the same key. Configure the permanent signing secrets before publishing production releases.
 - **Need help:** open an issue with the app version, OS/architecture, interface, and reproducible steps—but remove proxy credentials first.
 
+## Nahan Mode
+
+**Nahan Mode** is a specialized scanning mode that discovers, ranks, and exports Cloudflare endpoints optimized for the **Nahan panel** (Cloudflare Worker based). It produces ready-to-use endpoint lists filtered by target country (Egypt, Nigeria) with deterministic numbering.
+
+### Quick Start
+
+```bash
+# Build the nahan binary
+go build -trimpath -o senpaiscanner-nahan ./cmd/nahan
+
+# Scan for Egypt and Nigeria endpoints (default)
+./senpaiscanner-nahan
+
+# Scan only Egypt with custom limits
+./senpaiscanner-nahan --country EG --max-probes 5000 --max-results 100 --workers 100 --timeout 3s
+
+# Use a config file
+./senpaiscanner-nahan --config nahan.yaml
+
+# Use your own IP list
+./senpaiscanner-nahan --input my-ips.txt --country EG,NG
+```
+
+### Configuration File (`nahan.yaml`)
+
+```yaml
+mode: nahan
+countries:
+  - EG
+  - NG
+scan:
+  workers: 100
+  timeout: 3s
+  max_probes: 5000
+  max_results: 100
+  ports: [443, 80, 8443, 2053, 2083, 2087, 2096]
+  dedup_mode: best-port-only
+  geoip_enabled: false
+output:
+  directory: ./nahan
+  txt: true
+  csv: true
+```
+
+### Command-line Flags
+
+| Flag | Default | Description |
+|------|---------|-------------|
+| `--country` | `EG,NG` | Comma-separated: `EG`, `NG`, `ALL` |
+| `--input` | *(empty)* | Input file (IPs, CIDRs, ranges); empty = embedded CF ranges |
+| `--output-dir` | `./nahan` | Output directory |
+| `--max-probes` | `5000` | Maximum IPs to probe |
+| `--max-results` | `100` | Maximum healthy results per country |
+| `--workers` | `100` | Concurrent workers |
+| `--timeout` | `3s` | Probe timeout |
+| `--ports` | `443,80,8443...` | Ports to test |
+| `--dedup-mode` | `best-port-only` | `best-port-only` or `all-healthy-ports` |
+| `--config` | *(empty)* | YAML config file path |
+
+### Input Formats
+
+The `--input` file accepts:
+```
+# Comments and blank lines ignored
+1.2.3.4
+1.2.3.4/32
+1.2.3.0/24
+1.2.3.4-1.2.3.40
+example.com
+```
+
+### Output Files
+
+```
+nahan/
+├── nahan-eg.txt       # Egypt endpoints: IP#EG-01, IP#EG-02...
+├── nahan-ng.txt       # Nigeria endpoints: IP#NG-01, IP#NG-02...
+└── nahan-results.csv  # Full metadata for debugging
+```
+
+**TXT format** (one per line):
+```
+104.16.0.1#EG-01
+104.16.0.2#EG-02
+172.64.0.1#NG-01
+```
+
+**CSV columns**:
+```
+country,ip,port,colo,asn,isp,latency_ms,loss_pct,throughput_mbps,score,status,probe_mode,tls_success,ws_success,country_confidence
+EG,104.16.0.1,443,CAI,13335,Cloudflare Inc.,45.2,0.0,12.5,0.87,healthy,http,true,true,0.90
+```
+
+### Country Classification
+
+Endpoints are assigned to countries using (in priority order):
+
+1. **Cloudflare colo code** (primary) — maps CAI/ALEX/HRG→EG, LOS/ABV/PHC→NG, etc. (confidence 0.7)
+2. **ASN organization name** (fallback) — matches "Telecom Egypt", "MTN Nigeria", etc. (confidence 0.5)
+3. **UNKNOWN** — if no confident match
+
+> **Why colo-based?** Nahan needs endpoints that work **for users in Egypt/Nigeria**. Cloudflare routes users to the nearest PoP (Point of Presence). An Egyptian user connects to CAI (Cairo), a Nigerian user to LOS (Lagos). The colo code identifies the serving edge, not the IP's registered location (which is often US for Cloudflare IPs). This is exactly what Nahan needs.
+
+### Health Scoring
+
+Each endpoint receives a **health score (0.0–1.0)** based on:
+
+| Component | Weight | Description |
+|-----------|--------|-------------|
+| Reachability | 30% | Passes Phase 1 health checks |
+| Latency | 15% | Lower is better (capped at 500ms) |
+| Packet Loss | 15% | Lower is better |
+| Throughput | 15% | Higher is better (log scale) |
+| TLS Success | 10% | TLS handshake succeeded |
+| WebSocket Success | 10% | WS upgrade succeeded |
+| Colo Bonus | 5% | +0.1 if colo in country's preferred list |
+
+Endpoints are ranked by score (descending) per country, then top-N selected.
+
+### Deduplication
+
+- **`best-port-only`** (default): Keep highest-scoring port per IP
+- **`all-healthy-ports`**: Keep all healthy ports per IP
+
+### Differences from Main Scanner
+
+| Feature | Main Scanner | Nahan Mode |
+|---------|-------------|------------|
+| Purpose | General CF endpoint discovery | Nahan panel endpoint generation |
+| Output | CSV/JSON/TXT, Sing-box, Clash | `nahan-XX.txt`, `nahan-results.csv` |
+| Country filter | Colo filter only | Country-aware with confidence |
+| Ranking | Latency/loss/speed | Multi-factor health score |
+| Numbering | None | Deterministic per country (XX-01, XX-02...) |
+
+### Security Note
+
+Nahan Mode only scans **Cloudflare IP ranges** (official `cloudflare.com/ips-v4` or user-provided CIDRs). It does not perform general internet scanning. Only test networks you are authorized to probe.
+
 ## Contributing
 
 Issues and pull requests are welcome. Read [`CONTRIBUTING.md`](CONTRIBUTING.md) before making a larger change, and include tests for scanner, parser, export, or state-management behavior when practical.

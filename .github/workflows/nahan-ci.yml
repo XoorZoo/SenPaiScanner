@@ -1,4 +1,4 @@
-name: Nahan CI (Go 1.25)
+name: Nahan CI
 
 on:
   push:
@@ -9,15 +9,15 @@ on:
 
 jobs:
   nahan:
-    name: Nahan Mode Test & Build (Go 1.25)
+    name: Nahan Mode Test & Build (Go from go.mod)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Go 1.25
+      - name: Set up Go from go.mod
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version-file: go.mod
           cache: true
 
       - name: Record environment

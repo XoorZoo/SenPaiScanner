@@ -40,7 +40,7 @@ func main() {
 
 	// Parse countries from flag
 	cfg.Countries = nahan.ParseCountries(strings.Join(cfg.Countries, ","))
-	cfg.applyDefaults()
+	cfg.ApplyDefaults()
 
 	fmt.Println("SenPai Scanner - Nahan Mode")
 	fmt.Println("Version:", version.String())

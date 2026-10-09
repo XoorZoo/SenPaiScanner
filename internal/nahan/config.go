@@ -71,12 +71,12 @@ func LoadConfig(path string) (*Config, error) {
 	}
 	
 	// Apply defaults for zero values
-	c.applyDefaults()
+	c.ApplyDefaults()
 	return c, nil
 }
 
-// applyDefaults fills in zero values with defaults.
-func (c *Config) applyDefaults() {
+// ApplyDefaults fills in zero values with defaults.
+func (c *Config) ApplyDefaults() {
 	if c.Mode == "" {
 		c.Mode = "nahan"
 	}

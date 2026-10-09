@@ -68,7 +68,7 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	results, err := runNahanScan(ctx, cfg, src, classifier)
+	results, err := runNahanScan(ctx, cancel, cfg, src, classifier)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Scan failed: %v\n", err)
 		os.Exit(1)
@@ -115,7 +115,7 @@ func buildIPSource(cfg *nahan.Config) (*ipsrc.Source, error) {
 	return ipsrc.NewWithOptions(true, false, extra, ipsrc.Options{UseBuiltin: useBuiltin})
 }
 
-func runNahanScan(ctx context.Context, cfg *nahan.Config, src *ipsrc.Source, classifier *nahan.Classifier) ([]*nahan.Endpoint, error) {
+func runNahanScan(ctx context.Context, cancel context.CancelFunc, cfg *nahan.Config, src *ipsrc.Source, classifier *nahan.Classifier) ([]*nahan.Endpoint, error) {
 	// Probe configuration
 	probeCfg := prober.Config{
 		Mode:               prober.ModeHTTP,

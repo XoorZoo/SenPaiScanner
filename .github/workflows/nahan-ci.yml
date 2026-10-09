@@ -35,8 +35,17 @@ jobs:
       - name: Test with race detector
         run: go test -race ./...
 
-      - name: Build Nahan binary
-        run: go build -trimpath -o senpaiscanner-nahan ./cmd/nahan
+      - name: Build Nahan binary (capture log)
+        run: |
+          set -o pipefail
+          go build -trimpath -o senpaiscanner-nahan ./cmd/nahan 2>&1 | tee nahan-build.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nahan-build-log
+          path: nahan-build.log
 
       - name: Verify binary
         run: ./senpaiscanner-nahan --version

@@ -195,7 +195,7 @@ func runNahanScan(ctx context.Context, cfg *nahan.Config, src *ipsrc.Source, cla
 		// Calculate health score
 		profile := classifier.Profiles[r.Country]
 		weights := nahan.DefaultWeights()
-		score, _ := nahan.CalculateHealthScore(r, profile, weights)
+		score, _ := nahan.CalculateHealthScore(r, &profile, weights)
 		r.HealthScore = score
 
 		// Store TLS/WS success
